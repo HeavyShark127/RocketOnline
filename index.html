@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROCKET ARENA ⚡</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@700&family=Exo+2:wght@400;600;800;900&display=swap');
+
+  :root {
+    --neon-blue: #00d4ff;
+    --neon-orange: #ff6b00;
+    --neon-green: #00ff88;
+    --bg-dark: #050810;
+    --bg-arena: #080d1a;
+    --ui-glow: 0 0 20px rgba(0,212,255,0.6);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-dark);
+    font-family: 'Exo 2', sans-serif;
+    color: white;
+    overflow: hidden;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+
+  #gameWrapper {
+    position: relative;
+    width: 900px;
+    max-width: 100vw;
+  }
+
+  /* HUD */
+  #hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background: rgba(5,8,16,0.95);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .team-score {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .score-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 2.8rem;
+    line-height: 1;
+    text-shadow: var(--ui-glow);
+  }
+
+  .score-blue { color: var(--neon-blue); }
+  .score-orange { color: var(--neon-orange); }
+
+  .team-label {
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    opacity: 0.6;
+    text-transform: uppercase;
+  }
+
+  #timer {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 2rem;
+    color: white;
+    text-align: center;
+    text-shadow: 0 0 15px rgba(255,255,255,0.5);
+  }
+
+  #timer.overtime { color: #ffdd00; animation: pulse 0.5s infinite alternate; }
+
+  @keyframes pulse { to { text-shadow: 0 0 25px #ffdd00, 0 0 50px #ff8800; } }
+
+  /* Boost bars */
+  .boost-section {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .boost-label { font-size: 0.55rem; letter-spacing: 2px; opacity: 0.5; }
+
+  .boost-bar-outer {
+    width: 100px;
+    height: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .boost-bar-inner {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.05s;
+  }
+
+  .boost-blue { background: linear-gradient(90deg, #0088ff, #00d4ff); box-shadow: 0 0 8px #00d4ff; }
+  .boost-orange { background: linear-gradient(90deg, #ff4400, #ff9900); box-shadow: 0 0 8px #ff6b00; }
+
+  /* Canvas */
+  #gameCanvas {
+    display: block;
+    border: 1px solid rgba(0,212,255,0.3);
+    border-top: none;
+    border-bottom: none;
+    box-shadow: 0 0 40px rgba(0,212,255,0.1);
+  }
+
+  /* Bottom bar */
+  #bottomBar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 12px;
+    background: rgba(5,8,16,0.95);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    font-size: 0.6rem;
+    letter-spacing: 1.5px;
+    opacity: 0.5;
+    text-transform: uppercase;
+  }
+
+  /* Overlay screens */
+  #overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5,8,16,0.92);
+    z-index: 100;
+    border-radius: 0 0 8px 8px;
+    backdrop-filter: blur(4px);
+  }
+
+  #overlay.hidden { display: none; }
+
+  .overlay-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 4rem;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-orange));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 20px rgba(0,212,255,0.5));
+  }
+
+  .overlay-sub {
+    font-size: 0.7rem;
+    letter-spacing: 4px;
+    opacity: 0.5;
+    margin-bottom: 40px;
+  }
+
+  .controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 35px;
+  }
+
+  .ctrl-team {
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 16px 24px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .ctrl-title {
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  .ctrl-title.blue { color: var(--neon-blue); }
+  .ctrl-title.orange { color: var(--neon-orange); }
+
+  .ctrl-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+    font-size: 0.75rem;
+    opacity: 0.8;
+  }
+
+  kbd {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.75rem;
+    min-width: 28px;
+    text-align: center;
+  }
+
+  .start-btn {
+    background: linear-gradient(135deg, #0044aa, #0088ff);
+    border: none;
+    color: white;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 6px;
+    padding: 14px 50px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+    box-shadow: 0 0 30px rgba(0,136,255,0.4);
+    transition: all 0.2s;
+  }
+
+  .start-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 50px rgba(0,136,255,0.7);
+  }
+
+  /* Goal banner */
+  #goalBanner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    z-index: 200;
+    text-align: center;
+    pointer-events: none;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  #goalBanner.show { transform: translate(-50%, -50%) scale(1); }
+
+  .goal-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 5rem;
+    font-weight: 700;
+    letter-spacing: 10px;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  .goal-text.blue { color: var(--neon-blue); text-shadow: 0 0 40px var(--neon-blue), 0 0 80px rgba(0,212,255,0.4); }
+  .goal-text.orange { color: var(--neon-orange); text-shadow: 0 0 40px var(--neon-orange), 0 0 80px rgba(255,107,0,0.4); }
+
+  .goal-sub { font-size: 0.8rem; letter-spacing: 5px; opacity: 0.6; margin-top: 4px; }
+
+  /* Result screen */
+  .result-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 3rem;
+    letter-spacing: 6px;
+    margin-bottom: 15px;
+  }
+
+  .result-scores {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 5rem;
+    margin-bottom: 30px;
+  }
+
+  .result-scores .sep { opacity: 0.3; margin: 0 15px; }
+
+  .rank-badge {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 8px 24px;
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    margin-bottom: 30px;
+    color: #ffd700;
+  }
+</style>
+</head>
+<body>
+
+<div id="gameWrapper">
+  <!-- HUD -->
+  <div id="hud">
+    <div class="team-score">
+      <div>
+        <div class="team-label">Blau</div>
+        <div class="score-num score-blue" id="scoreBlue">0</div>
+      </div>
+      <div class="boost-section" style="margin-left:10px">
+        <div class="boost-label">BOOST</div>
+        <div class="boost-bar-outer"><div class="boost-bar-inner boost-blue" id="boostBarBlue" style="width:33%"></div></div>
+      </div>
+    </div>
+
+    <div id="timer">5:00</div>
+
+    <div class="team-score">
+      <div class="boost-section" style="margin-right:10px;align-items:flex-end">
+        <div class="boost-label">BOOST</div>
+        <div class="boost-bar-outer"><div class="boost-bar-inner boost-orange" id="boostBarOrange" style="width:33%"></div></div>
+      </div>
+      <div style="text-align:right">
+        <div class="team-label">Orange</div>
+        <div class="score-num score-orange" id="scoreOrange">0</div>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="gameCanvas" width="900" height="500"></canvas>
+
+  <div id="bottomBar">
+    <span>WASD · Shift=Boost · Space=Sprung</span>
+    <span>ROCKET ARENA v1.0</span>
+    <span>← → ↑ · Enter=Boost · ↓=Sprung</span>
+  </div>
+
+  <!-- Goal banner -->
+  <div id="goalBanner">
+    <div class="goal-text" id="goalText">TOR!</div>
+    <div class="goal-sub" id="goalSub">BLAUES TEAM</div>
+  </div>
+
+  <!-- Overlay -->
+  <div id="overlay">
+    <div class="overlay-title">ROCKET ARENA</div>
+    <div class="overlay-sub">PHYSIK · BOOST · ARENA</div>
+
+    <div class="controls-grid">
+      <div class="ctrl-team">
+        <div class="ctrl-title blue">🔵 Blaues Team</div>
+        <div class="ctrl-row"><kbd>W</kbd> Fahren / Gas</div>
+        <div class="ctrl-row"><kbd>S</kbd> Rückwärts / Bremse</div>
+        <div class="ctrl-row"><kbd>A</kbd> Links drehen</div>
+        <div class="ctrl-row"><kbd>D</kbd> Rechts drehen</div>
+        <div class="ctrl-row"><kbd>Shift</kbd> 🚀 Boost</div>
+        <div class="ctrl-row"><kbd>Space</kbd> Sprung</div>
+      </div>
+      <div class="ctrl-team">
+        <div class="ctrl-title orange">🟠 Oranges Team</div>
+        <div class="ctrl-row"><kbd>↑</kbd> Fahren / Gas</div>
+        <div class="ctrl-row"><kbd>↓</kbd> Rückwärts / Bremse</div>
+        <div class="ctrl-row"><kbd>←</kbd> Links drehen</div>
+        <div class="ctrl-row"><kbd>→</kbd> Rechts drehen</div>
+        <div class="ctrl-row"><kbd>Enter</kbd> 🚀 Boost</div>
+        <div class="ctrl-row"><kbd>↓ (2x)</kbd> Sprung</div>
+      </div>
+    </div>
+
+    <button class="start-btn" id="startBtn" onclick="startGame()">SPIEL STARTEN</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+const GRAVITY = 0.4;
+const FRICTION = 0.985;
+const WALL_BOUNCE = 0.65;
+const BALL_R = 28;
+const CAR_W = 40, CAR_H = 24;
+const GROUND_Y = H - 40;
+const GOAL_W = 18, GOAL_H = 100;
+const BOOST_ACCEL = 0.8;
+const DRIVE_FORCE = 0.35;
+const JUMP_FORCE = -10;
+const ROTATE_SPEED = 0.08;
+const MAX_SPEED = 14;
+const BOOST_DRAIN = 0.8;
+const BOOST_FILL_SMALL = 12;
+const BOOST_FILL_LARGE = 100;
+const GAME_DURATION = 5 * 60; // seconds
+
+// ─── Game State ──────────────────────────────────────────────────────────────
+let gameRunning = false;
+let timeLeft = GAME_DURATION;
+let overtime = false;
+let lastTime = 0;
+let dt = 0;
+let goalCooldown = 0;
+let particles = [];
+let boostPads = [];
+let frameCount = 0;
+
+const score = { blue: 0, orange: 0 };
+
+// ─── Boost Pads ──────────────────────────────────────────────────────────────
+function initBoostPads() {
+  boostPads = [
+    // Large pads
+    { x: W*0.5, y: GROUND_Y, r: 20, large: true, cooldown: 0, maxCD: 600 },
+    { x: W*0.15, y: GROUND_Y, r: 20, large: true, cooldown: 0, maxCD: 600 },
+    { x: W*0.85, y: GROUND_Y, r: 20, large: true, cooldown: 0, maxCD: 600 },
+    // Small pads
+    { x: W*0.25, y: GROUND_Y, r: 10, large: false, cooldown: 0, maxCD: 300 },
+    { x: W*0.75, y: GROUND_Y, r: 10, large: false, cooldown: 0, maxCD: 300 },
+    { x: W*0.5, y: H*0.5, r: 10, large: false, cooldown: 0, maxCD: 300 },
+    { x: W*0.15, y: H*0.55, r: 10, large: false, cooldown: 0, maxCD: 300 },
+    { x: W*0.85, y: H*0.55, r: 10, large: false, cooldown: 0, maxCD: 300 },
+  ];
+}
+
+// ─── Car Class ───────────────────────────────────────────────────────────────
+class Car {
+  constructor(x, y, color, isBlue) {
+    this.startX = x; this.startY = y;
+    this.x = x; this.y = y;
+    this.vx = 0; this.vy = 0;
+    this.angle = isBlue ? 0 : Math.PI;
+    this.onGround = false;
+    this.onWall = false;
+    this.boost = 33;
+    this.color = color;
+    this.isBlue = isBlue;
+    this.jumpCooldown = 0;
+    this.jumped = false;
+    this.trailPoints = [];
+    this.isBoostingNow = false;
+    this.wallNormal = 0; // for wall driving
+  }
+
+  reset() {
+    this.x = this.startX; this.y = this.startY;
+    this.vx = 0; this.vy = 0;
+    this.angle = this.isBlue ? 0 : Math.PI;
+    this.onGround = false;
+    this.jumped = false;
+    this.trailPoints = [];
+    this.isBoostingNow = false;
+  }
+
+  update(keys) {
+    if (goalCooldown > 0) return;
+
+    const left  = keys[this.isBlue ? 'a' : 'ArrowLeft'];
+    const right = keys[this.isBlue ? 'd' : 'ArrowRight'];
+    const gas   = keys[this.isBlue ? 'w' : 'ArrowUp'];
+    const brake = keys[this.isBlue ? 's' : 'ArrowDown'];
+    const boost = keys[this.isBlue ? 'Shift' : 'Enter'];
+    const jump  = keys[this.isBlue ? ' ' : 'jump2'];
+
+    // Rotation
+    if (left)  this.angle -= ROTATE_SPEED * (this.onGround ? 0.7 : 1.2);
+    if (right) this.angle += ROTATE_SPEED * (this.onGround ? 0.7 : 1.2);
+
+    // Drive
+    if (gas) {
+      this.vx += Math.cos(this.angle) * DRIVE_FORCE;
+      this.vy += Math.sin(this.angle) * DRIVE_FORCE;
+    }
+    if (brake) {
+      this.vx -= Math.cos(this.angle) * DRIVE_FORCE * 0.6;
+      this.vy -= Math.sin(this.angle) * DRIVE_FORCE * 0.6;
+    }
+
+    // Boost
+    this.isBoostingNow = false;
+    if (boost && this.boost > 0) {
+      this.vx += Math.cos(this.angle) * BOOST_ACCEL;
+      this.vy += Math.sin(this.angle) * BOOST_ACCEL;
+      this.boost = Math.max(0, this.boost - BOOST_DRAIN * 0.016 * 60);
+      this.isBoostingNow = true;
+      // Boost trail
+      this.trailPoints.push({ x: this.x - Math.cos(this.angle)*22, y: this.y - Math.sin(this.angle)*22, life: 1 });
+    }
+
+    // Jump
+    if (this.jumpCooldown > 0) this.jumpCooldown--;
+    if (jump && (this.onGround || this.onWall) && !this.jumped && this.jumpCooldown <= 0) {
+      if (this.onWall) {
+        this.vx += Math.cos(this.wallNormal) * 8;
+        this.vy = JUMP_FORCE * 0.8;
+      } else {
+        this.vy = JUMP_FORCE;
+        this.vx += Math.cos(this.angle) * 2;
+      }
+      this.jumped = true;
+      this.jumpCooldown = 15;
+      this.onGround = false;
+      spawnParticles(this.x, this.y, '#ffffff', 4, 2);
+    }
+
+    // Gravity
+    if (!this.onGround) this.vy += GRAVITY;
+
+    // Speed limit
+    const spd = Math.hypot(this.vx, this.vy);
+    if (spd > MAX_SPEED) { this.vx *= MAX_SPEED/spd; this.vy *= MAX_SPEED/spd; }
+
+    this.x += this.vx;
+    this.y += this.vy;
+
+    // Friction
+    this.vx *= FRICTION;
+    this.vy *= FRICTION;
+
+    this.onGround = false;
+    this.onWall = false;
+
+    // Ground collision
+    if (this.y + CAR_H/2 >= GROUND_Y) {
+      this.y = GROUND_Y - CAR_H/2;
+      this.vy *= -0.4;
+      this.vx *= 0.92;
+      this.onGround = true;
+      this.jumped = false;
+      // Auto-orient on ground
+      this.angle = this.angle * 0.85 + (this.vx >= 0 ? 0 : Math.PI) * 0.15;
+    }
+
+    // Ceiling
+    if (this.y - CAR_H/2 <= 0) {
+      this.y = CAR_H/2;
+      this.vy *= -WALL_BOUNCE;
+    }
+
+    // Left wall
+    if (this.x - CAR_W/2 <= 0) {
+      this.x = CAR_W/2;
+      this.vx *= -WALL_BOUNCE;
+      this.onWall = true; this.wallNormal = 0;
+    }
+
+    // Right wall
+    if (this.x + CAR_W/2 >= W) {
+      this.x = W - CAR_W/2;
+      this.vx *= -WALL_BOUNCE;
+      this.onWall = true; this.wallNormal = Math.PI;
+    }
+
+    // Trail update
+    this.trailPoints = this.trailPoints.filter(p => { p.life -= 0.06; return p.life > 0; });
+
+    // Boost pad pickup
+    boostPads.forEach(pad => {
+      if (pad.cooldown > 0) return;
+      const dx = this.x - pad.x, dy = this.y - pad.y;
+      if (Math.hypot(dx, dy) < pad.r + 15) {
+        const fill = pad.large ? BOOST_FILL_LARGE : BOOST_FILL_SMALL;
+        this.boost = Math.min(100, this.boost + fill);
+        pad.cooldown = pad.maxCD;
+        spawnParticles(pad.x, pad.y, pad.large ? '#00ff88' : '#00aaff', pad.large ? 12 : 5, 3);
+      }
+    });
+  }
+
+  draw() {
+    // Trail
+    this.trailPoints.forEach(p => {
+      ctx.save();
+      ctx.globalAlpha = p.life * 0.6;
+      ctx.fillStyle = this.isBlue ? '#00aaff' : '#ff6b00';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 5 * p.life, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.angle);
+
+    // Glow when boosting
+    if (this.isBoostingNow) {
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = this.isBlue ? '#00d4ff' : '#ff6b00';
+    }
+
+    // Car body
+    const grad = ctx.createLinearGradient(-CAR_W/2, -CAR_H/2, CAR_W/2, CAR_H/2);
+    if (this.isBlue) {
+      grad.addColorStop(0, '#0066ff');
+      grad.addColorStop(0.5, '#0099ff');
+      grad.addColorStop(1, '#003388');
+    } else {
+      grad.addColorStop(0, '#ff6600');
+      grad.addColorStop(0.5, '#ff9900');
+      grad.addColorStop(1, '#aa3300');
+    }
+
+    // Main body
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(-CAR_W/2, -CAR_H/2, CAR_W, CAR_H, 5);
+    ctx.fill();
+
+    // Cockpit
+    ctx.fillStyle = 'rgba(180,220,255,0.6)';
+    ctx.beginPath();
+    ctx.roundRect(-2, -CAR_H/2+3, CAR_W/3, CAR_H*0.45, 3);
+    ctx.fill();
+
+    // Wheels
+    ctx.fillStyle = '#222';
+    ctx.shadowBlur = 0;
+    [[-CAR_W/2+6, CAR_H/2-2], [CAR_W/2-6, CAR_H/2-2],
+     [-CAR_W/2+6, -CAR_H/2+2], [CAR_W/2-6, -CAR_H/2+2]].forEach(([wx,wy]) => {
+      ctx.beginPath();
+      ctx.arc(wx, wy, 6, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    });
+
+    // Rocket exhaust
+    if (this.isBoostingNow) {
+      const exhaustX = -CAR_W/2 - 5;
+      const flameLen = 15 + Math.random()*10;
+      const flameGrad = ctx.createLinearGradient(exhaustX, 0, exhaustX - flameLen, 0);
+      flameGrad.addColorStop(0, this.isBlue ? '#00ffff' : '#ffff00');
+      flameGrad.addColorStop(0.5, this.isBlue ? '#0088ff' : '#ff6600');
+      flameGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = flameGrad;
+      ctx.beginPath();
+      ctx.moveTo(exhaustX, -5);
+      ctx.lineTo(exhaustX - flameLen, 0);
+      ctx.lineTo(exhaustX, 5);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+}
+
+// ─── Ball ─────────────────────────────────────────────────────────────────────
+class Ball {
+  constructor() { this.reset(); }
+
+  reset() {
+    this.x = W/2; this.y = H/2 - 50;
+    this.vx = 0; this.vy = 0;
+    this.spin = 0;
+    this.angle = 0;
+  }
+
+  update() {
+    if (goalCooldown > 0) return;
+
+    this.vy += GRAVITY * 0.7;
+    this.x += this.vx;
+    this.y += this.vy;
+    this.angle += this.spin;
+    this.vx *= 0.998;
+    this.vy *= 0.998;
+    this.spin *= 0.995;
+
+    // Ground
+    if (this.y + BALL_R >= GROUND_Y) {
+      this.y = GROUND_Y - BALL_R;
+      this.vy *= -WALL_BOUNCE;
+      this.vx *= 0.95;
+      this.spin = this.vx * 0.05;
+    }
+
+    // Ceiling
+    if (this.y - BALL_R <= 0) {
+      this.y = BALL_R;
+      this.vy *= -WALL_BOUNCE;
+    }
+
+    // Walls (skip goal areas)
+    const goalTop = GROUND_Y - GOAL_H;
+
+    if (this.x - BALL_R <= GOAL_W) {
+      if (this.y > goalTop) {
+        // In goal area – check for actual goal
+      } else {
+        this.x = GOAL_W + BALL_R;
+        this.vx *= -WALL_BOUNCE;
+      }
+    }
+
+    if (this.x + BALL_R >= W - GOAL_W) {
+      if (this.y > goalTop) {
+        // In goal area – check for actual goal
+      } else {
+        this.x = W - GOAL_W - BALL_R;
+        this.vx *= -WALL_BOUNCE;
+      }
+    }
+  }
+
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.angle);
+
+    // Shadow
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = 'rgba(255,255,255,0.3)';
+
+    // Ball
+    const grad = ctx.createRadialGradient(-6, -6, 2, 0, 0, BALL_R);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.4, '#dddddd');
+    grad.addColorStop(1, '#888888');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, BALL_R, 0, Math.PI*2);
+    ctx.fill();
+
+    // Panel lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -BALL_R); ctx.lineTo(0, BALL_R);
+    ctx.moveTo(-BALL_R, 0); ctx.lineTo(BALL_R, 0);
+    ctx.arc(0, 0, BALL_R*0.6, 0, Math.PI*2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  hitCar(car) {
+    const dx = this.x - car.x, dy = this.y - car.y;
+    const dist = Math.hypot(dx, dy);
+    const minDist = BALL_R + Math.max(CAR_W, CAR_H)*0.6;
+    if (dist < minDist && dist > 0) {
+      const nx = dx/dist, ny = dy/dist;
+      // Separate
+      const overlap = minDist - dist;
+      this.x += nx * overlap * 0.8;
+      this.y += ny * overlap * 0.8;
+
+      // Relative velocity
+      const relVx = this.vx - car.vx;
+      const relVy = this.vy - car.vy;
+      const dot = relVx*nx + relVy*ny;
+
+      if (dot < 0) {
+        const impulse = -(1.6) * dot;
+        const carSpeed = Math.hypot(car.vx, car.vy);
+        const power = 0.6 + carSpeed * 0.12;
+        this.vx += nx * impulse * power;
+        this.vy += ny * impulse * power;
+        this.spin += (ny * car.vx - nx * car.vy) * 0.03;
+
+        const hitSpeed = Math.abs(impulse * power);
+        if (hitSpeed > 3) {
+          spawnParticles(this.x - nx*BALL_R, this.y - ny*BALL_R, '#ffffff', Math.floor(hitSpeed), 3);
+        }
+      }
+    }
+  }
+}
+
+// ─── Particles ───────────────────────────────────────────────────────────────
+function spawnParticles(x, y, color, count, speed) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const spd = (0.5 + Math.random()) * speed;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * spd,
+      vy: Math.sin(angle) * spd - 1,
+      color,
+      life: 1,
+      size: 2 + Math.random() * 3
+    });
+  }
+}
+
+function spawnGoalExplosion(x, y, color) {
+  for (let i = 0; i < 80; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const spd = 2 + Math.random() * 8;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * spd,
+      vy: Math.sin(angle) * spd,
+      color,
+      life: 1,
+      size: 3 + Math.random() * 6
+    });
+  }
+}
+
+function updateParticles() {
+  particles = particles.filter(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.15;
+    p.vx *= 0.97; p.vy *= 0.97;
+    p.life -= 0.025;
+    return p.life > 0;
+  });
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+const ball = new Ball();
+const carBlue = new Car(W*0.25, GROUND_Y - 30, '#0088ff', true);
+const carOrange = new Car(W*0.75, GROUND_Y - 30, '#ff6600', false);
+
+initBoostPads();
+
+// ─── Input ────────────────────────────────────────────────────────────────────
+const keys = {};
+let orangeJumpBuffer = false;
+let orangeDownLast = false;
+
+document.addEventListener('keydown', e => {
+  const k = e.key === 'ArrowDown' ? 'ArrowDown' : e.key;
+  keys[k] = true;
+
+  // Double-tap down = jump for orange
+  if (k === 'ArrowDown') {
+    if (orangeDownLast) { keys['jump2'] = true; orangeDownLast = false; }
+    else { orangeDownLast = true; setTimeout(() => orangeDownLast = false, 300); }
+  }
+
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+});
+
+document.addEventListener('keyup', e => {
+  keys[e.key] = false;
+  if (e.key === 'ArrowDown') { keys['jump2'] = false; }
+});
+
+// ─── Drawing helpers ──────────────────────────────────────────────────────────
+function drawArena() {
+  // Background
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, '#0a0f20');
+  bgGrad.addColorStop(1, '#060810');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(0,100,180,0.08)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 60) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 60) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Center line
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([10, 8]);
+  ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, GROUND_Y); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Center circle
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(W/2, GROUND_Y - 120, 80, 0, Math.PI*2);
+  ctx.stroke();
+
+  // Goals
+  const goalTop = GROUND_Y - GOAL_H;
+
+  // Blue goal (left)
+  const blueGoalGrad = ctx.createLinearGradient(0, goalTop, GOAL_W, goalTop);
+  blueGoalGrad.addColorStop(0, 'rgba(0,120,255,0.5)');
+  blueGoalGrad.addColorStop(1, 'rgba(0,120,255,0.05)');
+  ctx.fillStyle = blueGoalGrad;
+  ctx.fillRect(0, goalTop, GOAL_W, GOAL_H);
+  ctx.strokeStyle = '#0088ff';
+  ctx.lineWidth = 2;
+  ctx.shadowBlur = 10; ctx.shadowColor = '#0088ff';
+  ctx.strokeRect(0, goalTop, GOAL_W, GOAL_H);
+  ctx.shadowBlur = 0;
+
+  // Orange goal (right)
+  const orangeGoalGrad = ctx.createLinearGradient(W, goalTop, W - GOAL_W, goalTop);
+  orangeGoalGrad.addColorStop(0, 'rgba(255,100,0,0.5)');
+  orangeGoalGrad.addColorStop(1, 'rgba(255,100,0,0.05)');
+  ctx.fillStyle = orangeGoalGrad;
+  ctx.fillRect(W - GOAL_W, goalTop, GOAL_W, GOAL_H);
+  ctx.strokeStyle = '#ff6b00';
+  ctx.lineWidth = 2;
+  ctx.shadowBlur = 10; ctx.shadowColor = '#ff6b00';
+  ctx.strokeRect(W - GOAL_W, goalTop, GOAL_W, GOAL_H);
+  ctx.shadowBlur = 0;
+
+  // Ground
+  ctx.fillStyle = '#1a2a1a';
+  ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+  ctx.strokeStyle = 'rgba(0,255,100,0.3)';
+  ctx.lineWidth = 2;
+  ctx.shadowBlur = 8; ctx.shadowColor = '#00ff44';
+  ctx.beginPath();
+  ctx.moveTo(GOAL_W, GROUND_Y); ctx.lineTo(W - GOAL_W, GROUND_Y);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Walls
+  ctx.strokeStyle = 'rgba(100,150,255,0.3)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(0, goalTop);
+  ctx.moveTo(W, 0); ctx.lineTo(W, goalTop);
+  ctx.moveTo(0, 0); ctx.lineTo(W, 0);
+  ctx.stroke();
+}
+
+function drawBoostPads() {
+  boostPads.forEach(pad => {
+    if (pad.cooldown > 0) { pad.cooldown--; return; }
+
+    const pulse = 0.7 + 0.3 * Math.sin(frameCount * 0.08);
+
+    ctx.save();
+    ctx.globalAlpha = pulse;
+
+    if (pad.large) {
+      // Large pad
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = '#00ff88';
+      ctx.strokeStyle = '#00ff88';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(pad.x, pad.y, pad.r, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(0,255,136,0.15)';
+      ctx.fill();
+      // Inner
+      ctx.fillStyle = '#00ff88';
+      ctx.beginPath();
+      ctx.arc(pad.x, pad.y, 5, 0, Math.PI*2);
+      ctx.fill();
+    } else {
+      // Small pad
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#00aaff';
+      ctx.strokeStyle = '#00aaff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(pad.x, pad.y, pad.r, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(0,170,255,0.2)';
+      ctx.fill();
+    }
+
+    ctx.restore();
+  });
+}
+
+function drawShadow(obj, r) {
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  const sh = ctx.createRadialGradient(obj.x, GROUND_Y, 0, obj.x, GROUND_Y, r);
+  sh.addColorStop(0, 'rgba(0,0,0,0.6)');
+  sh.addColorStop(1, 'transparent');
+  ctx.fillStyle = sh;
+  ctx.beginPath();
+  ctx.ellipse(obj.x, GROUND_Y, r, 8, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// ─── Goal check ───────────────────────────────────────────────────────────────
+function checkGoal() {
+  const goalTop = GROUND_Y - GOAL_H;
+
+  // Ball in blue goal (left) → orange scores
+  if (ball.x - BALL_R < GOAL_W && ball.y > goalTop) {
+    score.orange++;
+    triggerGoal('orange');
+    return;
+  }
+
+  // Ball in orange goal (right) → blue scores
+  if (ball.x + BALL_R > W - GOAL_W && ball.y > goalTop) {
+    score.blue++;
+    triggerGoal('blue');
+    return;
+  }
+}
+
+function triggerGoal(team) {
+  goalCooldown = 180;
+  const isBlue = team === 'blue';
+  spawnGoalExplosion(isBlue ? W - GOAL_W : GOAL_W, GROUND_Y - GOAL_H/2, isBlue ? '#00d4ff' : '#ff6b00');
+
+  const banner = document.getElementById('goalBanner');
+  const goalText = document.getElementById('goalText');
+  const goalSub = document.getElementById('goalSub');
+  goalText.textContent = 'TOR!';
+  goalText.className = 'goal-text ' + team;
+  goalSub.textContent = (isBlue ? 'BLAUES' : 'ORANGES') + ' TEAM PUNKTET!';
+  banner.classList.add('show');
+
+  document.getElementById('scoreBlue').textContent = score.blue;
+  document.getElementById('scoreOrange').textContent = score.orange;
+
+  setTimeout(() => {
+    banner.classList.remove('show');
+    ball.reset();
+    carBlue.reset();
+    carOrange.reset();
+    goalCooldown = 0;
+
+    // Check if game over
+    if (!overtime && timeLeft <= 0) endGame();
+  }, 2800);
+}
+
+// ─── Timer ────────────────────────────────────────────────────────────────────
+let lastSecond = 0;
+function updateTimer(now) {
+  if (goalCooldown > 0) return;
+  const elapsed = (now - lastSecond) / 1000;
+  if (elapsed >= 1) {
+    lastSecond = now;
+    if (!overtime) {
+      timeLeft--;
+      if (timeLeft < 0) timeLeft = 0;
+    }
+    updateTimerDisplay();
+  }
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timer');
+  if (overtime) {
+    el.textContent = 'EXTRA';
+    el.className = 'overtime';
+  } else {
+    const m = Math.floor(timeLeft / 60);
+    const s = timeLeft % 60;
+    el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    el.className = timeLeft <= 30 ? 'overtime' : '';
+  }
+
+  if (timeLeft <= 0 && !overtime && goalCooldown <= 0) {
+    if (score.blue === score.orange) {
+      overtime = true;
+    } else {
+      endGame();
+    }
+  }
+}
+
+function endGame() {
+  gameRunning = false;
+  const overlay = document.getElementById('overlay');
+  overlay.innerHTML = buildResultScreen();
+  overlay.classList.remove('hidden');
+}
+
+function buildResultScreen() {
+  const blueWins = score.blue > score.orange;
+  const draw = score.blue === score.orange;
+  const winner = draw ? 'UNENTSCHIEDEN' : (blueWins ? '🔵 BLAU GEWINNT!' : '🟠 ORANGE GEWINNT!');
+  const color = draw ? '#fff' : (blueWins ? '#00d4ff' : '#ff6b00');
+
+  return `
+    <div class="result-title" style="color:${color}">${winner}</div>
+    <div class="result-scores">
+      <span class="score-blue">${score.blue}</span>
+      <span class="sep">:</span>
+      <span class="score-orange">${score.orange}</span>
+    </div>
+    <div class="rank-badge">🏆 MATCH BEENDET</div>
+    <button class="start-btn" onclick="restartGame()">NOCHMAL SPIELEN</button>
+  `;
+}
+
+// ─── Game loop ────────────────────────────────────────────────────────────────
+function gameLoop(now) {
+  if (!gameRunning) return;
+  frameCount++;
+
+  dt = Math.min((now - lastTime) / 16.67, 3);
+  lastTime = now;
+
+  updateTimer(now);
+
+  carBlue.update(keys);
+  carOrange.update(keys);
+  ball.update();
+
+  ball.hitCar(carBlue);
+  ball.hitCar(carOrange);
+
+  updateParticles();
+  checkGoal();
+
+  // Draw
+  drawArena();
+  drawBoostPads();
+  drawShadow(ball, 35);
+  drawShadow(carBlue, 25);
+  drawShadow(carOrange, 25);
+  drawParticles();
+  ball.draw();
+  carBlue.draw();
+  carOrange.draw();
+
+  // Boost HUD update
+  document.getElementById('boostBarBlue').style.width = carBlue.boost + '%';
+  document.getElementById('boostBarOrange').style.width = carOrange.boost + '%';
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ─── Start / Restart ─────────────────────────────────────────────────────────
+function startGame() {
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('goalBanner').classList.remove('show');
+  score.blue = 0; score.orange = 0;
+  document.getElementById('scoreBlue').textContent = '0';
+  document.getElementById('scoreOrange').textContent = '0';
+  timeLeft = GAME_DURATION;
+  overtime = false;
+  goalCooldown = 0;
+  particles = [];
+  ball.reset();
+  carBlue.reset();
+  carOrange.reset();
+  initBoostPads();
+  updateTimerDisplay();
+  gameRunning = true;
+  lastTime = performance.now();
+  lastSecond = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+
+function restartGame() {
+  startGame();
+}
+
+// Initial draw
+drawArena();
+drawBoostPads();
+ball.draw();
+carBlue.draw();
+carOrange.draw();
+</script>
+</body>
+</html>
